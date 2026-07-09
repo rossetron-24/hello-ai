@@ -6,6 +6,31 @@ __pycache__/
 # C extensions
 *.so
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+
+# pytest
+.pytest_cache/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Environment variables
+.env
+
+# Coverage
+.coverage
+htmlcov/
+
 # Distribution / packaging
 .Python
 build/
