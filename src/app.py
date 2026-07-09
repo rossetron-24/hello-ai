@@ -1,7 +1,12 @@
-def greet(name):
+APP_NAME = "Hello AI"
+VERSION = "0.1.0"
+
+
+def greet(name: str) -> str:
+    """Return a personalized greeting."""
     return f"Hello {name}! Welcome to Azure AI Foundry."
 
 
-if __name__ == "__main__":
-    name = input("Enter your name: ")
-    print(greet(name))
+def get_version() -> str:
+    """Return application version."""
+    return VERSION
