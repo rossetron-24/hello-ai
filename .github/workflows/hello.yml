@@ -1,12 +1,18 @@
-name: Hello AI Workflow
+name: Hello AI CI
 
 on:
   push:
     branches:
       - main
+      - "feature/**"
+
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  hello:
+  test:
+
     runs-on: ubuntu-latest
 
     steps:
@@ -18,11 +24,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Verify Python
-        run: python --version
-
-      - name: Run Hello App
+      - name: Install Dependencies
         run: |
-          python app.py <<EOF
-          Raj
-          EOF
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: |
+          pytest

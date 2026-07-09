@@ -1,7 +1,5 @@
-def get_health():
-    """
-    Return application health.
-    """
+def get_health() -> dict:
+    """Return application health."""
 
     return {
         "status": "healthy"

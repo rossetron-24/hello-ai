@@ -8,19 +8,5 @@ def greet(name: str) -> str:
 
 
 def get_version() -> str:
-    """Return the application version."""
+    """Return application version."""
     return VERSION
-
-
-def main() -> None:
-    print("=" * 40)
-    print(APP_NAME)
-    print(f"Version: {get_version()}")
-    print("=" * 40)
-
-    name = input("Enter your name: ")
-    print(greet(name))
-
-
-if __name__ == "__main__":
-    main()
