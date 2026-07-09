@@ -11,9 +11,7 @@ app = FastAPI(
 
 @app.get("/")
 def root():
-    return {
-        "message": "Welcome to Hello AI"
-    }
+    return {"message": "Welcome to Hello AI"}
 
 
 @app.get("/health")
@@ -23,7 +21,4 @@ def health():
 
 @app.get("/version")
 def version():
-    return {
-        "application": APP_NAME,
-        "version": APP_VERSION
-    }
+    return {"application": APP_NAME, "version": APP_VERSION}
