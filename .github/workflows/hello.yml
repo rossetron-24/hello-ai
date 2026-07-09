@@ -5,7 +5,6 @@ on:
     branches:
       - main
 
-
 jobs:
   hello:
     runs-on: ubuntu-latest
@@ -19,11 +18,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Verify python
-        run: python-version
+      - name: Verify Python
+        run: python --version
 
-      -name: Run Hello App
-       run: |
-         python app.py <<EOF
-         Raj
-         EOF
+      - name: Run Hello App
+        run: |
+          python app.py <<EOF
+          Raj
+          EOF
