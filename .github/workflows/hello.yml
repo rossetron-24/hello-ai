@@ -107,3 +107,29 @@ jobs:
           echo "Deploying Docker image to Experiment. . . "
           sleep 5
           echo "Deployment to Experiment completed successfully!"
+
+  deploy-uat:
+    name: Deploy to UAT
+    needs: deploy-experiment
+    runs-on: ubuntu-latest
+
+    environment:
+      name: uat
+    
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "=============================================="
+          echo "Deployment Environment : uat"
+          echo "Repository             : ${{ github.repository }}"
+          echo "Branch                 : ${{ github.ref_name }}"
+          echo "Commit                 : ${{ github.sha }}"
+          echo "Actor                  : ${{ github.actor }}"
+          echo "Docker Image           : ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          echo "=============================================="}}
+
+      - name: Simulate UAT Deployment
+        run: |
+          echo "Deploying Docker image to UAT. . . "
+          sleep 5
+          echo "Deployment to UAT completed successfully!"
