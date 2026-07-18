@@ -77,7 +77,8 @@ jobs:
 
       - name: Push Docker Image
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository }}/hello-ai:${{ github.sha }}
+          IMAGE_NAME=ghcr.io/${{ github.repository }}:${{ github.sha }}
+          echo "Pushing image: $IMAGE_NAME"
           docker tag hello-ai:${{ github.sha }} $IMAGE_NAME
           docker push $IMAGE_NAME
 
