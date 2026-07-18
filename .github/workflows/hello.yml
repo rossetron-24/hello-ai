@@ -16,7 +16,11 @@ permissions:
 
 jobs:
   ci:
+    name: Continuous Integration
     runs-on: ubuntu-latest
+
+    outputs:
+      image_tag: ${{ github.sha}}
 
     steps:
       - name: Checkout Repository
@@ -58,7 +62,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest -v
+          python -m pytest -v
 
       - name: Build Docker Image
         run: |
@@ -76,3 +80,29 @@ jobs:
           IMAGE_NAME=ghcr.io/${{ github.repository }}/hello-ai:${{ github.sha }}
           docker tag hello-ai:${{ github.sha }} $IMAGE_NAME
           docker push $IMAGE_NAME
+
+  deploy-experiment:
+    name: Deploy to Experiment
+    needs: ci
+    runs-on: ubuntu-latest
+
+    environment:
+      name: experiment
+    
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "=============================================="
+          echo "Deployment Environment : experiment"
+          echo "Repository             : ${{ github.repository }}"
+          echo "Branch                 : ${{ github.ref_name }}"
+          echo "Commit                 : ${{ github.sha }}"
+          echo "Actor                  : ${{ github.actor }}"
+          echo "Docker Image           : ghcr.io/${{ github.repository }}/hello-ai:${{ github.sha }}"
+          echo "=============================================="}}
+
+      - name: Simulate Deployment
+        run: |
+          echo "Deploying Docker image to Experiment. . . "
+          sleep 5
+          echo "Deployment to Experiment completed successfully!"
