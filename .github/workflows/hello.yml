@@ -133,3 +133,29 @@ jobs:
           echo "Deploying Docker image to UAT. . . "
           sleep 5
           echo "Deployment to UAT completed successfully!"
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-uat
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+    
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "=============================================="
+          echo "Deployment Environment : production"
+          echo "Repository             : ${{ github.repository }}"
+          echo "Branch                 : ${{ github.ref_name }}"
+          echo "Commit                 : ${{ github.sha }}"
+          echo "Actor                  : ${{ github.actor }}"
+          echo "Docker Image           : ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          echo "=============================================="}}
+
+      - name: Simulate Production Deployment
+        run: |
+          echo "Deploying Docker image to Production. . . "
+          sleep 5
+          echo "Deployment to Production completed successfully!" 
