@@ -3,25 +3,28 @@ name: Hello AI CI/CD
 on:
   push:
     branches:
+      - develop
+      - release
       - main
       - "feature/**"
-
-  pull_request:
-    branches:
-      - main
 
 permissions:
   id-token: write
   contents: read
-  packages: write
+
+env:
+  RESOURCE_GROUP: first_rg
+  REGISTRY: helloaiacr.azurecr.io
+  IMAGE_NAME: hello-ai
 
 jobs:
+
   ci:
-    name: Continuous Integration
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
     outputs:
-      image_tag: ${{ github.sha}}
+      image_tag: ${{ github.sha }}
 
     steps:
       - name: Checkout Repository
@@ -37,37 +40,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Show Installed Packages
-        run: |
-          python --version
-          pip --version
-          pip list
-          pip check
-
-      - name: Verify Repository Structure
-        run: |
-          pwd
-          ls -la
-          find src -maxdepth 3 || true
-          find tests -maxdepth 2 || true
-
       - name: Run Black
-        run: |
-          black --check src tests
+        run: black --check src tests
 
       - name: Run Flake8
-        run: |
-          flake8 src tests
+        run: flake8 src tests
 
-      - name: Run Pytest
+      - name: Run Tests
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m pytest -v
+          pytest -v
 
       - name: Build Docker Image
         run: |
-          docker build -t hello-ai:${{ github.sha }} .
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
 
       - name: Azure Login
         uses: azure/login@v2
@@ -80,116 +67,107 @@ jobs:
         run: |
           az acr login --name helloaiacr
 
-      - name: Push Docker Image to Azure Container Registry
+      - name: Push Docker Image
         run: |
-          IMAGE_NAME=helloaiacr.azurecr.io/hello-ai:${{ github.sha }}
+          docker tag \
+            $IMAGE_NAME:${{ github.sha }} \
+            $REGISTRY/$IMAGE_NAME:${{ github.sha }}
 
-          echo "Tagging image as: $IMAGE_NAME"
+          docker push \
+            $REGISTRY/$IMAGE_NAME:${{ github.sha }}
 
-          docker tag hello-ai:${{ github.sha }} $IMAGE_NAME
-
-          echo "Pushing image to Azure Container Registry..."
-
-          docker push $IMAGE_NAME
-          
   deploy-experiment:
-    name: Deploy to Experiment
+    if: startsWith(github.ref, 'refs/heads/feature/')
     needs: ci
     runs-on: ubuntu-latest
 
-    environment:
-      name: experiment
-    
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "=============================================="
-          echo "Deployment Environment : experiment"
-          echo "Repository             : ${{ github.repository }}"
-          echo "Branch                 : ${{ github.ref_name }}"
-          echo "Commit                 : ${{ github.sha }}"
-          echo "Actor                  : ${{ github.actor }}"
-          echo "Docker Image           : ghcr.io/${{ github.repository }}/hello-ai:${{ github.sha }}"
-          echo "=============================================="}}
-
-      - name: Simulate Deployment
-        run: |
-          echo "Deploying Docker image to Experiment. . . "
-          sleep 5
-          echo "Deployment to Experiment completed successfully!"
-
-  deploy-uat:
-    name: Deploy to UAT
-    needs: deploy-experiment
-    runs-on: ubuntu-latest
-
-    environment:
-      name: uat
-    
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "=============================================="
-          echo "Deployment Environment : uat"
-          echo "Repository             : ${{ github.repository }}"
-          echo "Branch                 : ${{ github.ref_name }}"
-          echo "Commit                 : ${{ github.sha }}"
-          echo "Actor                  : ${{ github.actor }}"
-          echo "Docker Image           : ghcr.io/${{ github.repository }}:${{ github.sha }}"
-          echo "=============================================="}}
-
-      - name: Simulate UAT Deployment
-        run: |
-          echo "Deploying Docker image to UAT. . . "
-          sleep 5
-          echo "Deployment to UAT completed successfully!"
-
-  deploy-production:
-    name: Deploy to Production
-    needs: deploy-uat
-    runs-on: ubuntu-latest
-
-    environment:
-      name: production
-    
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "=============================================="
-          echo "Deployment Environment : production"
-          echo "Repository             : ${{ github.repository }}"
-          echo "Branch                 : ${{ github.ref_name }}"
-          echo "Commit                 : ${{ github.sha }}"
-          echo "Actor                  : ${{ github.actor }}"
-          echo "Docker Image           : ghcr.io/${{ github.repository }}:${{ github.sha }}"
-          echo "=============================================="}}
-
-      - name: Simulate Production Deployment
-        run: |
-          echo "Deploying Docker image to Production. . . "
-          sleep 5
-          echo "Deployment to Production completed successfully!" 
-
-  azure-login-test:
-    name: Azure Login Test
-    needs: deploy-production
-    runs-on: ubuntu-latest
+    environment: experiment
 
     steps:
-      - name: Checkpoint Repository
-        uses: actions/checkout@v4 
-
-      - name: Login to Azure    
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Show Azure Account
+      - name: Deploy to Experiment
         run: |
-          az account show
-          
-      - name: List Azure Container Registries
+          az containerapp update \
+            --name hello-ai-experiment \
+            --resource-group $RESOURCE_GROUP \
+            --image $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/develop'
+    needs: ci
+    runs-on: ubuntu-latest
+
+    environment: dev
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Dev
         run: |
-          az acr list --output table    
+          az containerapp update \
+            --name hello-ai \
+            --resource-group $RESOURCE_GROUP \
+            --image $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+  deploy-uat:
+    if: github.ref == 'refs/heads/release'
+    needs: ci
+    runs-on: ubuntu-latest
+
+    environment: uat
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to UAT
+        run: |
+          az containerapp update \
+            --name hello-ai-uat \
+            --resource-group $RESOURCE_GROUP \
+            --image $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+
+    environment: prod
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Production
+        run: |
+          az containerapp update \
+            --name hello-ai-prod \
+            --resource-group $RESOURCE_GROUP \
+            --image $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Verify Deployment
+        run: |
+          az containerapp show \
+            --name hello-ai-prod \
+            --resource-group $RESOURCE_GROUP \
+            --query properties.latestRevisionName \
+            --output table
